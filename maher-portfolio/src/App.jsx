@@ -50,7 +50,6 @@ import {
 const apiKey = "AIzaSyD6dZPyD0m56_AMh9FbcsulJQlStVvOwFk"; 
 
 // 2. FIREBASE CONFIGURATION
-// (PASTE YOUR KEYS HERE AGAIN IF THEY ARE MISSING)
 const firebaseConfig = {
   apiKey: "AIzaSyCTr78gVUfde0DmegHr39XHfeNT88ZKF5M",
   authDomain: "maher-portfolio-2015a.firebaseapp.com",
@@ -61,7 +60,11 @@ const firebaseConfig = {
   measurementId: "G-58DVKG1ZQP"
 };
 
-const appId = 'default-app-id';
+// Fix appId slashes if they exist
+let appId = 'default-app-id';
+if (typeof __app_id !== 'undefined') {
+  appId = __app_id.replace(/\//g, '_');
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -90,7 +93,7 @@ const callGemini = async (prompt, systemInstruction = "") => {
   }
 };
 
-// --- INITIAL DATA ---
+// --- INITIAL DATA (Your default content) ---
 const INITIAL_DATA = {
   profile: {
     name: 'Maher Bhatt',
@@ -185,53 +188,38 @@ const INITIAL_DATA = {
   ]
 };
 
-// --- ROBUST DATA HOOK ---
+// --- DATA HOOK ---
 const usePortfolioData = () => {
+  // IMPORTANT: Loading is initially FALSE so the page shows immediately
   const [data, setData] = useState({ profile: INITIAL_DATA.profile, projects: [], skills: [], certifications: [] });
-  const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [profileId, setProfileId] = useState(null);
 
-  // 1. Auth with Timeout Safety
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        await signInAnonymously(auth);
-      } catch (err) {
-        console.warn("Auth failed (Offline mode)", err);
-      }
-    };
-    initAuth();
+    // Try auth silently
+    signInAnonymously(auth).catch(e => console.warn("Auth failed, using local mode"));
     
-    // Force stop loading after 2.5 seconds if Auth hangs
-    const safetyTimer = setTimeout(() => {
-      setLoading(false);
-    }, 2500);
-
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      // If auth state settles (even if null), we can trust the flow
-      if (!u) {
-         // No user? keep defaults and stop loading
-         // We let the timeout handle the unmount/loading false to be safe
-      }
+    return onAuthStateChanged(auth, (u) => {
+      if (u) setUser(u);
     });
-
-    return () => {
-      unsubscribe();
-      clearTimeout(safetyTimer);
-    };
   }, []);
 
-  // 2. Data Fetching
+  // Fetch Data if User Connects
   useEffect(() => {
-    if (!user) return; // Wait for user, BUT the timeout above handles the "no user" case
+    if (!user) {
+        // If no user yet, Ensure we have at least initial data showing
+        setData({ 
+            profile: INITIAL_DATA.profile, 
+            projects: INITIAL_DATA.projects.map((x, i) => ({...x, id: i})),
+            skills: INITIAL_DATA.skills.map((x, i) => ({...x, id: i})),
+            certifications: INITIAL_DATA.certifications.map((x, i) => ({...x, id: i}))
+        });
+        return;
+    }
 
     const fetchData = async () => {
       try {
-        const publicPath = `artifacts/${appId}/public/data`;
-        
-        // Try to fetch
+        // Try to fetch from DB
         const [projSnap, skillSnap, certSnap, profileSnap] = await Promise.all([
           getDocs(collection(db, 'projects')),
           getDocs(collection(db, 'skills')),
@@ -245,52 +233,30 @@ const usePortfolioData = () => {
         let profile = profileSnap.empty ? INITIAL_DATA.profile : profileSnap.docs[0].data();
         let pId = profileSnap.empty ? null : profileSnap.docs[0].id;
 
-        // Fallback to initial if empty DB
+        // If DB is empty or fetch failed to return items, fall back to INITIAL_DATA
         if (projects.length === 0) {
-           // Try seeding if we have permission
-           try {
-             const newProfileRef = await addDoc(collection(db, 'profile'), INITIAL_DATA.profile);
-             pId = newProfileRef.id;
-             profile = INITIAL_DATA.profile;
-             for (const p of INITIAL_DATA.projects) await addDoc(collection(db, 'projects'), p);
-             for (const s of INITIAL_DATA.skills) await addDoc(collection(db, 'skills'), s);
-             for (const c of INITIAL_DATA.certifications) await addDoc(collection(db, 'certifications'), c);
-             
-             // Re-fetch
-             const newProj = await getDocs(collection(db, 'projects'));
-             projects = newProj.docs.map(d => ({ id: d.id, ...d.data() }));
-             const newSkill = await getDocs(collection(db, 'skills'));
-             skills = newSkill.docs.map(d => ({ id: d.id, ...d.data() }));
-             const newCert = await getDocs(collection(db, 'certifications'));
-             certifications = newCert.docs.map(d => ({ id: d.id, ...d.data() }));
-           } catch (e) {
-             console.log("Seeding blocked (read-only mode), using local data");
-             // Use local data structure
-             projects = INITIAL_DATA.projects.map((x, i) => ({...x, id: i}));
-             skills = INITIAL_DATA.skills.map((x, i) => ({...x, id: i}));
-             certifications = INITIAL_DATA.certifications.map((x, i) => ({...x, id: i}));
-           }
+             projects = INITIAL_DATA.projects.map((x, i) => ({...x, id: `local-${i}`}));
+             skills = INITIAL_DATA.skills.map((x, i) => ({...x, id: `local-${i}`}));
+             certifications = INITIAL_DATA.certifications.map((x, i) => ({...x, id: `local-${i}`}));
         }
 
         setData({ profile, projects, skills, certifications });
         setProfileId(pId);
       } catch (err) {
-        console.warn("Fetch failed (Offline mode), using local data");
-        // Fallback to local data
+        console.warn("Running in Offline Mode:", err);
+        // Fallback is already set by initial state, but we reaffirm it here
         setData({ 
           profile: INITIAL_DATA.profile, 
           projects: INITIAL_DATA.projects.map((x, i) => ({...x, id: i})),
           skills: INITIAL_DATA.skills.map((x, i) => ({...x, id: i})),
           certifications: INITIAL_DATA.certifications.map((x, i) => ({...x, id: i}))
         });
-      } finally {
-        setLoading(false);
       }
     };
     fetchData();
   }, [user]);
 
-  // CRUD Helpers (Safe wrappers)
+  // CRUD Operations
   const addItem = async (type, item) => {
     try {
       const docRef = await addDoc(collection(db, type), item);
@@ -318,7 +284,7 @@ const usePortfolioData = () => {
     } catch(e) { alert("Cannot edit in Offline/Read-Only Mode"); }
   };
 
-  return { data, loading, addItem, updateItem, deleteItem };
+  return { data, loading: false, addItem, updateItem, deleteItem }; // FORCE LOADING FALSE
 };
 
 // --- COMPONENTS (UI) ---
@@ -545,92 +511,6 @@ const Certifications = ({ certifications, onCertClick, isAdmin, onAdd, onDelete,
   </div>
 );
 
-const Contact = ({ profile }) => {
-  const [formState, setFormState] = useState('idle');
-  const [message, setMessage] = useState('');
-  const [isPolishing, setIsPolishing] = useState(false);
-  const handleSubmit = (e) => { e.preventDefault(); setFormState('submitting'); setTimeout(() => setFormState('success'), 1500); };
-  const handlePolishMessage = async (e) => {
-    e.preventDefault(); if (!message.trim()) return; setIsPolishing(true);
-    const systemPrompt = "Rewrite this to be professional for a recruiter.";
-    const polished = await callGemini(message, systemPrompt);
-    setMessage(polished.replace(/^"(.*)"$/, '$1')); setIsPolishing(false);
-  };
-  return (
-    <div id="contact" className="py-32 relative">
-      <div className="bg-[#0F1117] border border-slate-800 rounded-[2.5rem] p-8 md:p-16 shadow-2xl overflow-hidden relative group">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-b from-cyan-500/10 to-transparent rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 group-hover:bg-cyan-500/20 transition-colors duration-1000" />
-        <div className="grid lg:grid-cols-2 gap-16 relative z-10">
-          <div>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Let's build something <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">extraordinary.</span></h2>
-            <div className="space-y-6 mb-12">
-              <div className="flex items-center gap-4 text-slate-300 group/item hover:text-white transition-colors"><div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400"><Mail size={20} /></div><span className="text-lg">{profile.email}</span></div>
-              <div className="flex items-center gap-4 text-slate-300 group/item hover:text-white transition-colors"><div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-purple-400 group-hover/item:border-purple-500/50 transition-colors"><MapPin size={20} /></div><span className="text-lg">{profile.location}</span></div>
-            </div>
-            <div className="flex gap-4">
-               {[
-                 { icon: Linkedin, link: profile.social?.linkedin, color: 'hover:text-blue-400' },
-                 { icon: Github, link: profile.social?.github, color: 'hover:text-white' },
-                 { icon: Award, link: profile.social?.credly, color: 'hover:text-orange-400' }
-               ].map((social, i) => (
-                 <a key={i} href={social.link} target="_blank" rel="noopener noreferrer" className={`p-4 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 transition-all hover:scale-110 hover:border-slate-600 ${social.color}`}><social.icon size={24} /></a>
-               ))}
-            </div>
-          </div>
-          <form onSubmit={handleSubmit} className="bg-slate-900/50 p-8 rounded-3xl border border-slate-800/50 backdrop-blur-sm space-y-6">
-             <div className="space-y-2">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Your Message</label>
-                  {message.length > 5 && (
-                    <button type="button" onClick={handlePolishMessage} disabled={isPolishing} className="text-xs font-bold text-cyan-400 flex items-center gap-1 hover:text-cyan-300 bg-cyan-500/10 px-2 py-1 rounded-md transition-colors">
-                       {isPolishing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} AI Polish
-                    </button>
-                  )}
-                </div>
-                <textarea required rows="6" value={message} onChange={(e) => setMessage(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-4 text-white focus:border-cyan-500 outline-none resize-none placeholder-slate-600 leading-relaxed" placeholder="Hi Maher, I'd like to discuss a project..."></textarea>
-             </div>
-             <button disabled={formState === 'submitting' || formState === 'success'} className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-cyan-500/20 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]">
-                {formState === 'success' ? <><CheckCircle size={20} /> Message Sent!</> : <><Send size={20} /> Send Message</>}
-             </button>
-          </form>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- GEMINI WIDGET ---
-const AIChatWidget = ({ data }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([{ role: 'assistant', text: "Hi! I'm MaherAI. Ask me anything about Maher's skills, projects, or experience!" }]);
-  const [input, setInput] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSend = async (e) => {
-    e.preventDefault(); if (!input.trim()) return;
-    const userMsg = input; setInput("");
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]); setIsLoading(true);
-    const context = `NAME: ${data.profile.name} ROLE: ${data.profile.role} PROJECTS: ${data.projects.map(p => p.title).join(', ')}`;
-    const systemPrompt = `You are MaherAI. Answer based on: ${context}`;
-    const aiResponse = await callGemini(userMsg, systemPrompt);
-    setMessages(prev => [...prev, { role: 'assistant', text: aiResponse }]); setIsLoading(false);
-  };
-
-  return (
-    <>
-      <button onClick={() => setIsOpen(!isOpen)} className={`fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center ${isOpen ? 'bg-slate-800 text-slate-400 rotate-90' : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white animate-pulse-slow'}`}>{isOpen ? <X size={24} /> : <Bot size={28} />}</button>
-      {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 md:w-96 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[500px] animate-fade-in-up">
-           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-950/50 min-h-[300px]">
-             {messages.map((msg, idx) => <div key={idx} className={`p-3 rounded-lg text-sm ${msg.role === 'user' ? 'bg-cyan-600 ml-auto' : 'bg-slate-800'}`}>{msg.text}</div>)}
-           </div>
-           <form onSubmit={handleSend} className="p-3 bg-slate-900 border-t border-slate-700 flex gap-2"><input value={input} onChange={(e) => setInput(e.target.value)} className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white" /><button type="submit" className="p-2 bg-cyan-600 text-white rounded-xl"><Send size={18} /></button></form>
-        </div>
-      )}
-    </>
-  );
-};
-
 // --- MODALS (Simplified for Production File) ---
 const ModalWrapper = ({ title, onClose, children }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
@@ -751,6 +631,26 @@ const ProfileEditorModal = ({ isOpen, onClose, profile, onSave }) => {
         <button onClick={() => onSave(data)} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 rounded-xl mt-4 transition-colors">Save Profile</button>
       </div>
     </ModalWrapper>
+  );
+};
+
+const CertificateModal = ({ cert, onClose }) => {
+  if (!cert) return null;
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={onClose} />
+      <div className="relative bg-[#0F1117] border border-slate-700 rounded-3xl w-full max-w-lg shadow-2xl animate-fade-in-up p-8">
+        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
+        <div className="flex items-center gap-6 mb-8">
+          <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-4xl shadow-lg bg-blue-500/20 text-blue-400 border border-blue-500/20`}><Award size={40} /></div>
+          <div><h3 className="text-2xl font-bold text-white leading-tight mb-2">{cert.title}</h3><div className="text-slate-400 flex items-center gap-2 text-sm"><span className="font-bold text-cyan-400">{cert.issuer}</span><span>•</span><span className="flex items-center gap-1"><Calendar size={14} /> {cert.date}</span></div></div>
+        </div>
+        <div className="space-y-6">
+          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800"><h4 className="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">About Certification</h4><p className="text-slate-300 leading-relaxed">{cert.description || 'No description available.'}</p></div>
+          <div><h4 className="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">Skills Earned</h4><div className="flex flex-wrap gap-2">{cert.skills?.map(skill => <span key={skill} className="px-3 py-1 bg-cyan-900/30 border border-cyan-500/30 text-cyan-300 rounded-lg text-sm font-medium">{skill}</span>)}</div></div>
+        </div>
+      </div>
+    </div>
   );
 };
 
