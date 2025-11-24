@@ -50,7 +50,7 @@ import {
 const apiKey = "AIzaSyD6dZPyD0m56_AMh9FbcsulJQlStVvOwFk"; 
 
 // 2. FIREBASE CONFIGURATION
-// 2. FIREBASE CONFIGURATION
+// (PASTE YOUR KEYS HERE AGAIN IF THEY ARE MISSING)
 const firebaseConfig = {
   apiKey: "AIzaSyCTr78gVUfde0DmegHr39XHfeNT88ZKF5M",
   authDomain: "maher-portfolio-2015a.firebaseapp.com",
@@ -90,7 +90,7 @@ const callGemini = async (prompt, systemInstruction = "") => {
   }
 };
 
-// --- INITIAL DATA (Seeding) ---
+// --- INITIAL DATA ---
 const INITIAL_DATA = {
   profile: {
     name: 'Maher Bhatt',
@@ -185,45 +185,58 @@ const INITIAL_DATA = {
   ]
 };
 
-// --- DATA HOOK ---
+// --- ROBUST DATA HOOK ---
 const usePortfolioData = () => {
   const [data, setData] = useState({ profile: INITIAL_DATA.profile, projects: [], skills: [], certifications: [] });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [profileId, setProfileId] = useState(null);
 
+  // 1. Auth with Timeout Safety
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // @ts-ignore
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          // @ts-ignore
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
+        await signInAnonymously(auth);
       } catch (err) {
-        console.warn("Auth Warning:", err);
-        try { await signInAnonymously(auth); } catch (e) {}
+        console.warn("Auth failed (Offline mode)", err);
       }
     };
     initAuth();
-    return onAuthStateChanged(auth, setUser);
+    
+    // Force stop loading after 2.5 seconds if Auth hangs
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 2500);
+
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      // If auth state settles (even if null), we can trust the flow
+      if (!u) {
+         // No user? keep defaults and stop loading
+         // We let the timeout handle the unmount/loading false to be safe
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      clearTimeout(safetyTimer);
+    };
   }, []);
 
+  // 2. Data Fetching
   useEffect(() => {
-    if (!user) return;
+    if (!user) return; // Wait for user, BUT the timeout above handles the "no user" case
+
     const fetchData = async () => {
       try {
         const publicPath = `artifacts/${appId}/public/data`;
-        const isPreview = appId !== 'default-app-id' && !appId.startsWith('1:'); 
-        const collectionPath = (col) => isPreview ? `${publicPath}/${col}` : col;
-
+        
+        // Try to fetch
         const [projSnap, skillSnap, certSnap, profileSnap] = await Promise.all([
-          getDocs(collection(db, collectionPath('projects'))),
-          getDocs(collection(db, collectionPath('skills'))),
-          getDocs(collection(db, collectionPath('certifications'))),
-          getDocs(collection(db, collectionPath('profile')))
+          getDocs(collection(db, 'projects')),
+          getDocs(collection(db, 'skills')),
+          getDocs(collection(db, 'certifications')),
+          getDocs(collection(db, 'profile'))
         ]);
 
         let projects = projSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -232,92 +245,83 @@ const usePortfolioData = () => {
         let profile = profileSnap.empty ? INITIAL_DATA.profile : profileSnap.docs[0].data();
         let pId = profileSnap.empty ? null : profileSnap.docs[0].id;
 
-        if (projects.length === 0 && !pId) {
-          console.log("Attempting to seed Database...");
-          try {
-            const batchPromises = [];
-            const newProfileRef = await addDoc(collection(db, collectionPath('profile')), INITIAL_DATA.profile);
-            pId = newProfileRef.id;
-            profile = INITIAL_DATA.profile;
-
-            for (const p of INITIAL_DATA.projects) batchPromises.push(addDoc(collection(db, collectionPath('projects')), p));
-            for (const s of INITIAL_DATA.skills) batchPromises.push(addDoc(collection(db, collectionPath('skills')), s));
-            for (const c of INITIAL_DATA.certifications) batchPromises.push(addDoc(collection(db, collectionPath('certifications')), c));
-
-            await Promise.all(batchPromises);
-            
-            const [nProj, nSkill, nCert] = await Promise.all([
-               getDocs(collection(db, collectionPath('projects'))),
-               getDocs(collection(db, collectionPath('skills'))),
-               getDocs(collection(db, collectionPath('certifications')))
-            ]);
-            projects = nProj.docs.map(d => ({ id: d.id, ...d.data() }));
-            skills = nSkill.docs.map(d => ({ id: d.id, ...d.data() }));
-            certifications = nCert.docs.map(d => ({ id: d.id, ...d.data() }));
-          } catch (seedError) {
-            console.warn("Offline Mode: Seeding skipped due to permissions.");
-            projects = INITIAL_DATA.projects.map((p, i) => ({...p, id: `local-${i}`}));
-            skills = INITIAL_DATA.skills.map((s, i) => ({...s, id: `local-${i}`}));
-            certifications = INITIAL_DATA.certifications.map((c, i) => ({...c, id: `local-${i}`}));
-          }
+        // Fallback to initial if empty DB
+        if (projects.length === 0) {
+           // Try seeding if we have permission
+           try {
+             const newProfileRef = await addDoc(collection(db, 'profile'), INITIAL_DATA.profile);
+             pId = newProfileRef.id;
+             profile = INITIAL_DATA.profile;
+             for (const p of INITIAL_DATA.projects) await addDoc(collection(db, 'projects'), p);
+             for (const s of INITIAL_DATA.skills) await addDoc(collection(db, 'skills'), s);
+             for (const c of INITIAL_DATA.certifications) await addDoc(collection(db, 'certifications'), c);
+             
+             // Re-fetch
+             const newProj = await getDocs(collection(db, 'projects'));
+             projects = newProj.docs.map(d => ({ id: d.id, ...d.data() }));
+             const newSkill = await getDocs(collection(db, 'skills'));
+             skills = newSkill.docs.map(d => ({ id: d.id, ...d.data() }));
+             const newCert = await getDocs(collection(db, 'certifications'));
+             certifications = newCert.docs.map(d => ({ id: d.id, ...d.data() }));
+           } catch (e) {
+             console.log("Seeding blocked (read-only mode), using local data");
+             // Use local data structure
+             projects = INITIAL_DATA.projects.map((x, i) => ({...x, id: i}));
+             skills = INITIAL_DATA.skills.map((x, i) => ({...x, id: i}));
+             certifications = INITIAL_DATA.certifications.map((x, i) => ({...x, id: i}));
+           }
         }
 
         setData({ profile, projects, skills, certifications });
         setProfileId(pId);
-      } catch (err) { 
-        console.log("Offline Mode: Using local data."); 
+      } catch (err) {
+        console.warn("Fetch failed (Offline mode), using local data");
+        // Fallback to local data
         setData({ 
           profile: INITIAL_DATA.profile, 
-          projects: INITIAL_DATA.projects.map((p,i) => ({...p, id: i})),
-          skills: INITIAL_DATA.skills.map((s,i) => ({...s, id: i})),
-          certifications: INITIAL_DATA.certifications.map((c,i) => ({...c, id: i}))
+          projects: INITIAL_DATA.projects.map((x, i) => ({...x, id: i})),
+          skills: INITIAL_DATA.skills.map((x, i) => ({...x, id: i})),
+          certifications: INITIAL_DATA.certifications.map((x, i) => ({...x, id: i}))
         });
-      } 
-      finally { setLoading(false); }
+      } finally {
+        setLoading(false);
+      }
     };
     fetchData();
   }, [user]);
 
-  const getCollectionPath = (type) => {
-     const isPreview = appId !== 'default-app-id' && !appId.startsWith('1:');
-     return isPreview ? `artifacts/${appId}/public/data/${type}` : type;
-  };
-
+  // CRUD Helpers (Safe wrappers)
   const addItem = async (type, item) => {
     try {
-      const docRef = await addDoc(collection(db, getCollectionPath(type)), item);
+      const docRef = await addDoc(collection(db, type), item);
       setData(prev => ({ ...prev, [type]: [...prev[type], { ...item, id: docRef.id }] }));
-    } catch (e) { console.error("Add failed (Offline mode)"); }
+    } catch(e) { alert("Cannot edit in Offline/Read-Only Mode"); }
   };
 
   const updateItem = async (type, id, updates) => {
     try {
-      const path = getCollectionPath(type);
       if (type === 'profile') {
-         if (profileId) await updateDoc(doc(db, path, profileId), updates);
+         if (profileId) await updateDoc(doc(db, 'profile', profileId), updates);
       } else {
-         await updateDoc(doc(db, path, id), updates);
+         await updateDoc(doc(db, type, id), updates);
       }
-    } catch(e) { console.error("Update failed (Offline mode)"); }
-    
-    if (type === 'profile') {
-       setData(prev => ({ ...prev, profile: { ...prev.profile, ...updates } }));
-    } else {
-       setData(prev => ({ ...prev, [type]: prev[type].map(i => i.id === id ? { ...i, ...updates } : i) }));
-    }
+      // Optimistic update
+      if (type === 'profile') setData(prev => ({ ...prev, profile: { ...prev.profile, ...updates } }));
+      else setData(prev => ({ ...prev, [type]: prev[type].map(i => i.id === id ? { ...i, ...updates } : i) }));
+    } catch(e) { alert("Cannot edit in Offline/Read-Only Mode"); }
   };
 
   const deleteItem = async (type, id) => {
     try {
-      await deleteDoc(doc(db, getCollectionPath(type), id));
-    } catch(e) { console.error("Delete failed (Offline mode)"); }
-    setData(prev => ({ ...prev, [type]: prev[type].filter(i => i.id !== id) }));
+      await deleteDoc(doc(db, type, id));
+      setData(prev => ({ ...prev, [type]: prev[type].filter(i => i.id !== id) }));
+    } catch(e) { alert("Cannot edit in Offline/Read-Only Mode"); }
   };
 
   return { data, loading, addItem, updateItem, deleteItem };
 };
 
-// --- COMPONENTS ---
+// --- COMPONENTS (UI) ---
 
 const Navbar = ({ activeTab, scrollToSection, isMobileMenuOpen, setIsMobileMenuOpen }) => (
   <nav className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4">
@@ -421,11 +425,34 @@ const Hero = ({ profile, isAdmin, onEdit }) => (
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 animate-gradient">{profile.name}</span>
         </h1>
         <p className="text-xl text-slate-400 max-w-xl leading-relaxed">{profile.role}. <br/><span className="text-slate-500">{profile.tagline}</span></p>
-        <div className="flex flex-wrap gap-4 pt-4">
-          <button onClick={() => document.getElementById('contact').scrollIntoView({behavior: 'smooth'})} className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-bold shadow-lg shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-2">Let's Talk <Send size={20} /></button>
-          <div className="flex gap-2">
-            <a href={profile.social?.linkedin} target="_blank" rel="noopener noreferrer" className="p-4 bg-slate-800 hover:bg-blue-600 text-white rounded-2xl transition-all hover:scale-105 border border-slate-700 hover:border-blue-500"><Linkedin size={24} /></a>
-            <a href={profile.social?.github} target="_blank" rel="noopener noreferrer" className="p-4 bg-slate-800 hover:bg-slate-700 text-white rounded-2xl transition-all hover:scale-105 border border-slate-700"><Github size={24} /></a>
+        <div className="flex flex-wrap gap-6 pt-4 items-center">
+          <button 
+            onClick={() => document.getElementById('contact').scrollIntoView({behavior: 'smooth'})} 
+            className="group relative px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white rounded-2xl font-bold shadow-lg shadow-cyan-500/20 transition-all hover:scale-105 active:scale-95 flex items-center gap-3 overflow-hidden"
+          >
+            <span className="relative z-10 flex items-center gap-2">Let's Talk <Send size={20} /></span>
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </button>
+
+          <div className="flex items-center gap-3">
+            <a 
+              href={profile.social?.linkedin} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="p-4 bg-slate-900/50 border border-slate-700/50 text-slate-400 hover:text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/10 rounded-2xl transition-all hover:scale-110 backdrop-blur-md group"
+              aria-label="LinkedIn"
+            >
+              <Linkedin size={24} className="group-hover:drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] transition-all" />
+            </a>
+            <a 
+              href={profile.social?.github} 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="p-4 bg-slate-900/50 border border-slate-700/50 text-slate-400 hover:text-white hover:border-slate-500/50 hover:bg-white/10 rounded-2xl transition-all hover:scale-110 backdrop-blur-md group"
+              aria-label="GitHub"
+            >
+              <Github size={24} className="group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] transition-all" />
+            </a>
           </div>
         </div>
         <div className="grid grid-cols-3 gap-8 pt-8 border-t border-slate-800/50 max-w-lg">
@@ -538,11 +565,13 @@ const Contact = ({ profile }) => {
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight">Let's build something <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">extraordinary.</span></h2>
             <div className="space-y-6 mb-12">
               <div className="flex items-center gap-4 text-slate-300 group/item hover:text-white transition-colors"><div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-cyan-400"><Mail size={20} /></div><span className="text-lg">{profile.email}</span></div>
+              <div className="flex items-center gap-4 text-slate-300 group/item hover:text-white transition-colors"><div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-purple-400 group-hover/item:border-purple-500/50 transition-colors"><MapPin size={20} /></div><span className="text-lg">{profile.location}</span></div>
             </div>
             <div className="flex gap-4">
                {[
                  { icon: Linkedin, link: profile.social?.linkedin, color: 'hover:text-blue-400' },
-                 { icon: Github, link: profile.social?.github, color: 'hover:text-white' }
+                 { icon: Github, link: profile.social?.github, color: 'hover:text-white' },
+                 { icon: Award, link: profile.social?.credly, color: 'hover:text-orange-400' }
                ].map((social, i) => (
                  <a key={i} href={social.link} target="_blank" rel="noopener noreferrer" className={`p-4 bg-slate-900 border border-slate-800 rounded-2xl text-slate-400 transition-all hover:scale-110 hover:border-slate-600 ${social.color}`}><social.icon size={24} /></a>
                ))}
@@ -602,20 +631,20 @@ const AIChatWidget = ({ data }) => {
   );
 };
 
-// --- MODALS (Full Implementation) ---
-
+// --- MODALS (Simplified for Production File) ---
 const ModalWrapper = ({ title, onClose, children }) => (
   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto">
     <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={onClose} />
     <div className="relative bg-[#0F1117] border border-slate-700 rounded-3xl w-full max-w-xl shadow-2xl p-8 my-8 animate-fade-in-up">
-      <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-800">
-        <h3 className="text-2xl font-bold text-white">{title}</h3>
-        <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
-      </div>
-      {children}
+      <div className="flex justify-between items-center mb-8 pb-4 border-b border-slate-800"><h3 className="text-2xl font-bold text-white">{title}</h3><button onClick={onClose}><X size={24} /></button></div>{children}
     </div>
   </div>
 );
+const AdminLoginModal = ({ isOpen, onClose, onLogin }) => {
+  const [password, setPassword] = useState('');
+  if (!isOpen) return null;
+  return <ModalWrapper title="Admin Access" onClose={onClose}><input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mb-4" /><button onClick={() => onLogin(password)} className="w-full bg-cyan-600 text-white font-bold py-4 rounded-xl">Unlock</button></ModalWrapper>;
+};
 
 const ProjectEditorModal = ({ isOpen, onClose, project, onSave }) => {
   const [formData, setFormData] = useState(project || { title: '', description: '', category: 'Web App', tech_stack: [], demo_link: '', github_link: '' });
@@ -725,71 +754,20 @@ const ProfileEditorModal = ({ isOpen, onClose, profile, onSave }) => {
   );
 };
 
-const AdminLoginModal = ({ isOpen, onClose, onLogin }) => {
-  const [password, setPassword] = useState('');
-  if (!isOpen) return null;
-  return (
-    <ModalWrapper title="Admin Access" onClose={onClose}>
-      <p className="text-slate-400 text-sm mb-4">Enter the access code to edit portfolio data.</p>
-      <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white mb-4 focus:border-cyan-500 outline-none" placeholder="Enter code..." />
-      <button onClick={() => onLogin(password)} className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-4 rounded-xl transition-colors">Unlock</button>
-    </ModalWrapper>
-  );
-};
-
-const CertificateModal = ({ cert, onClose }) => {
-  if (!cert) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onClick={onClose} />
-      <div className="relative bg-[#0F1117] border border-slate-700 rounded-3xl w-full max-w-lg shadow-2xl animate-fade-in-up p-8">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors"><X size={24} /></button>
-        <div className="flex items-center gap-6 mb-8">
-          <div className={`w-20 h-20 rounded-2xl flex items-center justify-center text-4xl shadow-lg bg-blue-500/20 text-blue-400 border border-blue-500/20`}><Award size={40} /></div>
-          <div><h3 className="text-2xl font-bold text-white leading-tight mb-2">{cert.title}</h3><div className="text-slate-400 flex items-center gap-2 text-sm"><span className="font-bold text-cyan-400">{cert.issuer}</span><span>•</span><span className="flex items-center gap-1"><Calendar size={14} /> {cert.date}</span></div></div>
-        </div>
-        <div className="space-y-6">
-          <div className="bg-slate-900 rounded-2xl p-6 border border-slate-800"><h4 className="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">About Certification</h4><p className="text-slate-300 leading-relaxed">{cert.description || 'No description available.'}</p></div>
-          <div><h4 className="text-xs font-bold text-slate-500 uppercase mb-3 tracking-widest">Skills Earned</h4><div className="flex flex-wrap gap-2">{cert.skills?.map(skill => <span key={skill} className="px-3 py-1 bg-cyan-900/30 border border-cyan-500/30 text-cyan-300 rounded-lg text-sm font-medium">{skill}</span>)}</div></div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // --- MAIN APP ---
 export default function Portfolio() {
   const [activeTab, setActiveTab] = useState('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  
-  // Selection States
-  const [selectedCert, setSelectedCert] = useState(null);
-  
-  // Editor States
   const [editorState, setEditorState] = useState({ type: null, data: null });
-
+  const [selectedCert, setSelectedCert] = useState(null); // Missing state added
   const { data, loading, addItem, updateItem, deleteItem } = usePortfolioData();
 
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const [scrolled, setScrolled] = useState(false);
+  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-950 text-cyan-500"><Loader2 size={48} className="animate-spin" /></div>;
 
   const scrollToSection = (id) => { const el = document.getElementById(id); if (el) { el.scrollIntoView({ behavior: 'smooth' }); setActiveTab(id); setIsMobileMenuOpen(false); } };
-  
-  const handleAdminLogin = (code) => { 
-    if (code === 'Maher@2007&26') { 
-      setIsAdmin(true); 
-      setShowLoginModal(false); 
-    } else { 
-      alert('Incorrect Access Code'); 
-    } 
-  };
+  const handleAdminLogin = (code) => { if (code === 'Maher@2007&26') { setIsAdmin(true); setShowLoginModal(false); } else { alert('Incorrect Access Code'); } };
 
   // Generic Save Handlers
   const handleSaveProject = async (projData) => {
@@ -812,8 +790,6 @@ export default function Portfolio() {
     setEditorState({ type: null, data: null });
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-slate-950 text-cyan-500"><Loader2 size={48} className="animate-spin" /></div>;
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-cyan-500/30 selection:text-cyan-200 overflow-x-hidden relative">
       <Navbar activeTab={activeTab} scrollToSection={scrollToSection} isMobileMenuOpen={isMobileMenuOpen} setIsMobileMenuOpen={setIsMobileMenuOpen} />
@@ -824,13 +800,10 @@ export default function Portfolio() {
         <div id="certifications"><Certifications certifications={data.certifications} onCertClick={setSelectedCert} isAdmin={isAdmin} onAdd={() => setEditorState({ type: 'cert', data: null })} onDelete={(id) => deleteItem('certifications', id)} onEdit={(c) => setEditorState({ type: 'cert', data: c })} /></div>
         <Contact profile={data.profile} />
       </main>
-      
-      {/* Widgets & Modals */}
       <AIChatWidget data={data} />
-      <CertificateModal cert={selectedCert} onClose={() => setSelectedCert(null)} />
       <AdminLoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} onLogin={handleAdminLogin} />
+      <CertificateModal cert={selectedCert} onClose={() => setSelectedCert(null)} />
       
-      {/* Editor Modals */}
       <ProjectEditorModal isOpen={editorState.type === 'project'} onClose={() => setEditorState({ type: null, data: null })} project={editorState.data} onSave={handleSaveProject} />
       <SkillEditorModal isOpen={editorState.type === 'skill'} onClose={() => setEditorState({ type: null, data: null })} skill={editorState.data} onSave={handleSaveSkill} />
       <CertEditorModal isOpen={editorState.type === 'cert'} onClose={() => setEditorState({ type: null, data: null })} cert={editorState.data} onSave={handleSaveCert} />
