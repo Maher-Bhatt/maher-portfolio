@@ -47,29 +47,21 @@ import {
 // --- CONFIGURATION SECTION ---
 
 // 1. GEMINI API KEY
-const apiKey = ""; 
+const apiKey = "AIzaSyD6dZPyD0m56_AMh9FbcsulJQlStVvOwFk"; 
 
 // 2. FIREBASE CONFIGURATION
-let firebaseConfig;
-let appId = 'default-app-id';
+// 2. FIREBASE CONFIGURATION
+const firebaseConfig = {
+  apiKey: "AIzaSyCTr78gVUfde0DmegHr39XHfeNT88ZKF5M",
+  authDomain: "maher-portfolio-2015a.firebaseapp.com",
+  projectId: "maher-portfolio-2015a",
+  storageBucket: "maher-portfolio-2015a.firebasestorage.app",
+  messagingSenderId: "797881771362",
+  appId: "1:797881771362:web:eecd5d8baf1ee73126b83b",
+  measurementId: "G-58DVKG1ZQP"
+};
 
-try {
-  // @ts-ignore
-  firebaseConfig = JSON.parse(__firebase_config);
-  // @ts-ignore
-  if (typeof __app_id !== 'undefined') {
-    appId = __app_id.replace(/\//g, '_');
-  }
-} catch (e) {
-  firebaseConfig = {
-    apiKey: "PASTE_YOUR_FIREBASE_API_KEY",
-    authDomain: "your-project.firebaseapp.com",
-    projectId: "your-project-id",
-    storageBucket: "your-project.appspot.com",
-    messagingSenderId: "123456789",
-    appId: "1:123456789:web:abcdef"
-  };
-}
+const appId = 'default-app-id';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
