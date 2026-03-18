@@ -1,0 +1,27 @@
+[
+  {
+    "title": "BSides Vadodara CTF",
+    "description": "Solved cybersecurity challenges across web exploitation, OSINT, and logic puzzles in a competitive environment.",
+    "highlight": "Top 4"
+  },
+  {
+    "title": "Barracks Bug Bounty",
+    "description": "Identified and reported security vulnerabilities in a competitive bug bounty format.",
+    "highlight": "Top 2"
+  },
+  {
+    "title": "OSINT Lead — Team Cyphron",
+    "description": "Led OSINT research sessions and coordinated team strategy in a collaborative cybersecurity team.",
+    "highlight": "Lead"
+  },
+  {
+    "title": "HackITM Hackathon",
+    "description": "Served as frontend developer for a campus-wide hackathon project, building the complete user interface.",
+    "highlight": "Participant"
+  },
+  {
+    "title": "Game Jam Developer",
+    "description": "Designed and built an open-world racing game using Unreal Engine 5 within game jam constraints.",
+    "highlight": "Builder"
+  }
+]

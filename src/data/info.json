@@ -1,0 +1,25 @@
+{
+  "name": "Maher Bhatt",
+  "title": "CSE Student · Web Development & AI",
+  "intro": "I build real-world web applications that solve actual problems — not just practice projects.",
+  "about": [
+    "I build practical web applications that solve real problems for students and communities. My work includes a lost & found platform actively used on campus, a centralized study resource used by peers during exams, and hands-on cybersecurity competition experience.",
+    "My focus is Web Development and AI — building usable, clean systems rather than academic exercises. Long-term, I'm exploring cybersecurity as a serious discipline.",
+    "Self-driven learner. I don't wait for college to teach me — I build, ship, and iterate. Most of what I know comes from real projects, not coursework.",
+    "Open to internships, freelance work, and collaborations where I can contribute real value and keep growing."
+  ],
+  "stats": [
+    { "value": "2", "label": "Live Projects Deployed" },
+    { "value": "6", "label": "Certifications Earned" },
+    { "value": "Top 4", "label": "BSides CTF Ranking" }
+  ],
+  "email": "maherbhatt01@gmail.com",
+  "phone": "+91 9879529957",
+  "location": "Kalol, Gujarat, India",
+  "github": "https://github.com/Maher-Bhatt",
+  "linkedin": "https://www.linkedin.com/in/maher-bhatt-206035362/",
+  "contactLines": [
+    "Open for internships, freelance projects, and collaborations.",
+    "If you're building something real and need a developer who can execute — let's connect."
+  ]
+}

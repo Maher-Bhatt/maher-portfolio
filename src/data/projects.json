@@ -1,0 +1,28 @@
+[
+  {
+    "id": "itm-campus-retrieve",
+    "featured": true,
+    "title": "ITM Campus Retrieve",
+    "tagline": "Lost & found system for ITM students",
+    "problem": "Students had no centralized system to report or find lost items. Communication happened through scattered WhatsApp messages and informal channels, making recovery unreliable.",
+    "solution": "Built a clean web application where students post lost or found items with description, location, and contact info. Designed for fast posting and easy searching without login friction.",
+    "tech": ["React", "HTML", "CSS", "JavaScript"],
+    "result": "Solves a real student problem with a usable, structured system. Reduced dependency on scattered messaging and demonstrates practical full-stack problem solving.",
+    "impact": ["Solves real student problem", "Structured process over scattered messaging", "Live and accessible across campus"],
+    "github": "https://github.com/Maher-Bhatt/ITM-CAMPUS-RETRIEVES",
+    "live": "https://itm-campus-retrieves.vercel.app/"
+  },
+  {
+    "id": "itm-notes",
+    "featured": false,
+    "title": "ITM Notes",
+    "tagline": "Centralized study platform for students",
+    "problem": "Students relied on scattered notes, PDFs, and WhatsApp messages for exam prep, with no single reliable source organized by subject.",
+    "solution": "Built a structured website with subject-wise notes, important questions, and interactive MCQs covering 5 engineering subjects — organized for fast revision.",
+    "tech": ["HTML", "CSS", "JavaScript"],
+    "result": "Actively used by peers as a primary study resource. Improved content accessibility and helped students revise faster with structured, subject-specific material.",
+    "impact": ["Used by peers during exams", "150+ MCQs across 5 subjects", "Faster revision with structured content"],
+    "github": "https://github.com/Maher-Bhatt/ITM-NOTES",
+    "live": "https://itm-notes.vercel.app/"
+  }
+]

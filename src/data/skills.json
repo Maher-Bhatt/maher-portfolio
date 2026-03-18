@@ -1,0 +1,34 @@
+[
+  {
+    "category": "Languages",
+    "items": [
+      { "name": "Python",     "description": "Data analysis, scripting, and backend logic" },
+      { "name": "JavaScript", "description": "Building interactive web applications" },
+      { "name": "C",          "description": "Core programming fundamentals and memory concepts" }
+    ]
+  },
+  {
+    "category": "Web",
+    "items": [
+      { "name": "HTML / CSS", "description": "Structured, responsive, and accessible UI" },
+      { "name": "React",      "description": "Scalable component-based interface systems" }
+    ]
+  },
+  {
+    "category": "AI / Data",
+    "items": [
+      { "name": "Data Analysis",    "description": "Working with structured datasets in Python" },
+      { "name": "Data Visualization","description": "Presenting insights with charts and dashboards" },
+      { "name": "ML Basics",        "description": "Core machine learning concepts and workflows" },
+      { "name": "Generative AI",    "description": "AI-assisted development and prompt engineering" }
+    ]
+  },
+  {
+    "category": "Tools",
+    "items": [
+      { "name": "Git",              "description": "Version control and collaborative project management" },
+      { "name": "VS Code",          "description": "Primary development environment" },
+      { "name": "Jupyter Notebook", "description": "Data analysis and experimentation" }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+[
+  {
+    "role": "Co-Founder & Developer",
+    "org": "CET Prep Platform",
+    "period": "Jan 2026 – Mar 2026",
+    "points": [
+      "Designed and shipped a multi-subject study platform from scratch — self-initiated, no external funding or course requirement.",
+      "Built a shared CSS design system with subject-specific accent colors, responsive layout, and interactive MCQ components with instant feedback.",
+      "Iterated through three design passes based on usability feedback from real student users."
+    ]
+  },
+  {
+    "role": "Generative AI Practitioner",
+    "org": "Self-Directed · Outskill",
+    "period": "2025",
+    "points": [
+      "Completed Generative AI Mastermind certification; applied concepts to real development workflows.",
+      "Explored prompt engineering patterns and AI-assisted development tooling."
+    ]
+  }
+]

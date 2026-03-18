@@ -1,0 +1,44 @@
+[
+  {
+    "id": "PY0101EN",
+    "title": "Python 101 for Data Science",
+    "issuer": "IBM · Cognitive Class",
+    "date": "May 2025",
+    "verify": "https://courses.cognitiveclass.ai/certificates/6cb36985b4234a179ef7abe7e3e41812"
+  },
+  {
+    "id": "DA0101EN",
+    "title": "Data Analysis with Python",
+    "issuer": "IBM · Cognitive Class",
+    "date": "Jul 2025",
+    "verify": "https://courses.cognitiveclass.ai/certificates/7a0912bc04904445b9850f9ca474bdeb"
+  },
+  {
+    "id": "DV0101EN",
+    "title": "Data Visualization with Python",
+    "issuer": "IBM · Cognitive Class",
+    "date": "Jul 2025",
+    "verify": "https://courses.cognitiveclass.ai/certificates/c82e557bb1484726933185f026ec432b"
+  },
+  {
+    "id": "GENAI-01",
+    "title": "Generative AI Mastermind",
+    "issuer": "Outskill",
+    "date": "2025",
+    "verify": null
+  },
+  {
+    "id": "HACKITM-25",
+    "title": "HackITM — Certificate of Participation",
+    "issuer": "Google Student Ambassador · ITM SLS Baroda Univ.",
+    "date": "Nov 2025",
+    "verify": null
+  },
+  {
+    "id": "QUIZ-25",
+    "title": "Quiz Competition — Appreciation",
+    "issuer": "Neuvo · ITM SLS Baroda University",
+    "date": "Sep 2025",
+    "verify": null
+  }
+]
