@@ -1,34 +1,64 @@
 # Maher Bhatt | 3D Portfolio
 
-An immersive, single-world 3D personal portfolio built with React + Vite, Three.js via React Three Fiber, GSAP ScrollTrigger, and Framer Motion.
+An immersive personal portfolio built with React, Vite, Three.js, and Framer Motion. The site presents Maher Bhatt's work inside a single cinematic 3D scene with section-based camera movement, interactive projects, and a custom mobile-aware overlay.
+
+## Overview
+
+This version of the portfolio moves beyond a traditional scrolling page and uses one connected 3D environment for the full experience:
+
+1. Hero: metallic `MAHER` text with orbiting geometry
+2. About: floating profile space with animated stats
+3. Projects: interactive project cards with focus details
+4. Skills: orbital visual treatment for core strengths
+5. Agency: dedicated Velocity Web highlight
+6. Contact: terminal-inspired contact scene
 
 ## Stack
 
 - React + Vite
-- Three.js (`@react-three/fiber`, `@react-three/drei`)
-- GSAP + ScrollTrigger (scroll-driven camera flight)
-- Framer Motion (overlay and modal animations)
-- Google Fonts
-- Vercel deployment ready
+- Three.js via `@react-three/fiber` and `@react-three/drei`
+- Framer Motion
+- GSAP
+- Custom CSS
+- Vercel-ready deployment
 
-## Scene Architecture
+## Features
 
-The entire experience lives inside one continuous 3D scene:
+- Single-world 3D portfolio experience
+- Scroll-driven camera transitions between sections
+- Interactive project detail modal
+- Animated overlay navigation and hero content
+- Mobile-aware scene simplification for better performance
+- Responsive layout for desktop and smaller screens
 
-1. Hero: extruded metallic `MAHER` sculpture with orbiting geometry
-2. About: floating island + holographic panel and orbiting stat counters
-3. Projects: suspended 3D gallery cards with physical 180deg flips and click focus
-4. Skills: orbital solar-system of skill spheres around a glowing core
-5. Agency: extruded `Velocity Web` logo reveal + portal effect
-6. Contact: glowing terminal monolith + particle burst interaction
+## Highlighted Projects
 
-Global behavior:
+### CertChain
 
-- Scroll drives a cinematic camera path using GSAP ScrollTrigger
-- Mouse adds persistent parallax to camera and scene feel
-- Ambient particles run throughout the world
-- Mobile auto-reduces particle count and geometry complexity
-- Loading overlay uses Drei progress + Framer Motion
+On-chain ERC-721 NFT certificate minter built for Ethereum Sepolia.
+
+- GitHub: [github.com/Maher-Bhatt](https://github.com/Maher-Bhatt)
+
+### Z Tees
+
+Streetwear e-commerce site built for a real client with real orders.
+
+- Live: [ztees.store](https://ztees.store)
+- GitHub: [github.com/Maher-Bhatt/Z-Tees](https://github.com/Maher-Bhatt/Z-Tees)
+
+### ITM Campus Retrieve
+
+Lost-and-found workflow app for campus use.
+
+- Live: [itm-campus-retrieves.vercel.app](https://itm-campus-retrieves.vercel.app)
+- GitHub: [github.com/Maher-Bhatt/ITM-CAMPUS-RETRIEVES](https://github.com/Maher-Bhatt/ITM-CAMPUS-RETRIEVES)
+
+### ITM Notes
+
+Study platform with 150+ MCQs across engineering subjects.
+
+- Live: [itm-notes.vercel.app](https://itm-notes.vercel.app)
+- GitHub: [github.com/Maher-Bhatt/ITM-NOTES](https://github.com/Maher-Bhatt/ITM-NOTES)
 
 ## Local Development
 
@@ -37,7 +67,7 @@ npm install
 npm run dev
 ```
 
-## Build
+## Production Build
 
 ```bash
 npm run build
@@ -46,10 +76,17 @@ npm run preview
 
 ## Deploy to Vercel
 
-1. Push this repository to GitHub.
-2. Import the repo in Vercel.
-3. Framework preset: `Vite`.
-4. Build command: `npm run build`.
-5. Output directory: `dist`.
+1. Push the repository to GitHub.
+2. Import the repository into Vercel.
+3. Use the `Vite` framework preset.
+4. Set the build command to `npm run build`.
+5. Set the output directory to `dist`.
 
-`vercel.json` is included for SPA routing.
+The repository already includes `vercel.json` for SPA routing support.
+
+## Contact
+
+- Email: [maherbhatt01@gmail.com](mailto:maherbhatt01@gmail.com)
+- GitHub: [github.com/Maher-Bhatt](https://github.com/Maher-Bhatt)
+- LinkedIn: [linkedin.com/in/maher-bhatt-206035362](https://www.linkedin.com/in/maher-bhatt-206035362/)
+- Website: [maherbhatt.me](https://maherbhatt.me)

@@ -53,11 +53,16 @@ p {
   inset: 0;
   z-index: 7;
   pointer-events: none;
+  padding:
+    max(12px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
 }
 
 .overlay-nav {
   position: absolute;
-  top: 20px;
+  top: 8px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -69,6 +74,7 @@ p {
   border-radius: 999px;
   backdrop-filter: blur(12px);
   pointer-events: auto;
+  max-width: calc(100vw - 24px);
 }
 
 .overlay-nav-btn {
@@ -162,6 +168,7 @@ p {
 
 .scroll-step {
   min-height: 100vh;
+  min-height: 100svh;
 }
 
 .loading-screen {
@@ -368,21 +375,30 @@ p {
 
 @media (max-width: 900px) {
   .overlay-nav {
-    width: min(94vw, 560px);
+    width: calc(100vw - 24px);
     overflow-x: auto;
     justify-content: flex-start;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .overlay-nav::-webkit-scrollbar {
+    display: none;
   }
 
   .overlay-nav-btn {
     font-size: 0.7rem;
     padding: 8px 10px;
+    flex: 0 0 auto;
   }
 
   .hero-overlay {
     left: 18px;
     right: 18px;
-    bottom: 18px;
+    bottom: 28px;
     max-width: none;
+    gap: 12px;
   }
 
   .hero-cta-row {
@@ -418,5 +434,99 @@ p {
   .terminal-link-value {
     text-align: left;
     font-size: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .overlay-nav {
+    top: 4px;
+    gap: 6px;
+    padding: 7px;
+  }
+
+  .overlay-nav-btn {
+    font-size: 0.64rem;
+    letter-spacing: 0.05em;
+    padding: 8px 9px;
+  }
+
+  .hero-overlay {
+    left: 14px;
+    right: 14px;
+    bottom: 18px;
+    width: auto;
+    max-width: none;
+  }
+
+  .hero-role {
+    max-width: 17ch;
+    font-size: clamp(0.92rem, 4.8vw, 1.08rem);
+    line-height: 1.2;
+  }
+
+  .hero-subtitle {
+    max-width: 32ch;
+    font-size: 0.98rem;
+    line-height: 1.55;
+  }
+
+  .hero-cta-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .cta-btn {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+    font-size: 0.72rem;
+    padding: 10px 12px;
+  }
+
+  .section-pill {
+    right: 14px;
+    bottom: auto;
+    top: 68px;
+    padding: 8px 12px;
+    font-size: 0.63rem;
+  }
+
+  .terminal-links {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .overlay-layer {
+    padding-top: max(10px, env(safe-area-inset-top));
+  }
+
+  .overlay-nav {
+    border-radius: 24px;
+  }
+
+  .hero-overlay {
+    bottom: 14px;
+    gap: 10px;
+  }
+
+  .hero-role {
+    max-width: 15ch;
+    font-size: 0.88rem;
+  }
+
+  .hero-subtitle {
+    max-width: 28ch;
+    font-size: 0.92rem;
+  }
+
+  .hero-cta-row {
+    grid-template-columns: 1fr;
+  }
+
+  .section-pill {
+    top: 64px;
+    font-size: 0.58rem;
   }
 }

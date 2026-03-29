@@ -24,7 +24,7 @@ export default function MainScene({
     <Canvas
       shadows={!isMobile}
       dpr={isMobile ? [1, 1.2] : [1, 1.8]}
-      camera={{ position: [0, 2.2, 18], fov: isMobile ? 55 : 47, near: 0.1, far: 180 }}
+      camera={{ position: [0, isMobile ? 2.1 : 2.2, isMobile ? 19.5 : 18], fov: isMobile ? 60 : 47, near: 0.1, far: 180 }}
       gl={{ antialias: !isMobile, powerPreference: "high-performance" }}
       onPointerMissed={onClearProject}
       style={{ position: "fixed", inset: 0, zIndex: 1 }}
@@ -56,7 +56,7 @@ export default function MainScene({
 
         <Particles isMobile={isMobile} />
 
-        <Hero3D position={[0, 0.8, 0]} isMobile={isMobile} />
+        <Hero3D position={[0, isMobile ? 1.55 : 0.8, 0]} isMobile={isMobile} />
         <About3D position={[14, 0, -52]} isMobile={isMobile} />
         <Projects3D
           position={[0, 0, -118]}

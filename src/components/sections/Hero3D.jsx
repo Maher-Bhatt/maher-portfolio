@@ -54,6 +54,18 @@ export default function Hero3D({ position, isMobile }) {
   const groupRef = useRef();
   const textRef = useRef();
   const rotationTarget = useMemo(() => new THREE.Euler(), []);
+  const orbitConfigs = useMemo(
+    () =>
+      isMobile
+        ? ORBIT_CONFIG.slice(0, 3).map((config) => ({
+            ...config,
+            radius: config.radius * 0.72,
+            y: config.y * 0.78,
+            scale: config.scale * 0.82,
+          }))
+        : ORBIT_CONFIG,
+    [isMobile]
+  );
 
   useFrame((state, delta) => {
     if (!groupRef.current || !textRef.current) return;
@@ -79,13 +91,13 @@ export default function Hero3D({ position, isMobile }) {
         <Text3D
           ref={textRef}
           font={FONT_URL}
-          size={isMobile ? 2.35 : 3.35}
-          height={isMobile ? 0.7 : 1.05}
+          size={isMobile ? 1.7 : 3.35}
+          height={isMobile ? 0.45 : 1.05}
           curveSegments={isMobile ? 6 : 10}
           bevelEnabled
-          bevelThickness={0.09}
-          bevelSize={0.05}
-          bevelSegments={6}
+          bevelThickness={isMobile ? 0.05 : 0.09}
+          bevelSize={isMobile ? 0.03 : 0.05}
+          bevelSegments={isMobile ? 4 : 6}
           castShadow
           center
         >
@@ -102,12 +114,12 @@ export default function Hero3D({ position, isMobile }) {
         </Text3D>
       </Float>
 
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, -2.8, 0]}>
-        <torusGeometry args={[6.5, 0.11, 24, 120]} />
+      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, isMobile ? -1.95 : -2.8, 0]}>
+        <torusGeometry args={[isMobile ? 4.6 : 6.5, isMobile ? 0.08 : 0.11, 24, 120]} />
         <meshStandardMaterial color="#2f9bc2" emissive="#2f9bc2" emissiveIntensity={0.45} />
       </mesh>
 
-      {ORBIT_CONFIG.map((config, index) => (
+      {orbitConfigs.map((config, index) => (
         <Orbiter key={config.shape + index} config={config} index={index} />
       ))}
     </group>
